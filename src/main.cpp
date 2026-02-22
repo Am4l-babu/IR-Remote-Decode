@@ -15,19 +15,23 @@
 #include <ESP8266WebServer.h>
 #include <WebSocketsServer.h>
 #include <IRrecv.h>
+#include <IRsend.h>
 #include <IRutils.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include "learn_page.h"
+#include "remote_page.h"
 #include "wifi_credentials.h"
 
 // ==================== CONFIGURATION ====================
-const uint16_t IR_RECV_PIN = 2;  // GPIO2 = D4 on ESP8266
+const uint16_t IR_RECV_PIN = 2;   // GPIO2 = D4 on ESP8266
+const uint16_t IR_SEND_PIN = 5;   // GPIO5 = D1 on ESP8266
 const uint16_t CAPTURE_BUFFER_SIZE = 1024;
 const uint8_t  TIMEOUT = 50;
 // =======================================================
 
 IRrecv irrecv(IR_RECV_PIN, CAPTURE_BUFFER_SIZE, TIMEOUT, true);
+IRsend irsend(IR_SEND_PIN);
 decode_results results;
 
 ESP8266WebServer server(80);
@@ -495,8 +499,9 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
   <header>
     <h1>&#x1F4E1; IR Remote Decoder</h1>
     <p>Point your remote at the sensor and press any button</p>
-    <div style="margin:12px 0">
-      <a href="/learn" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#0f3460,#16213e);color:#00deff;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(0,222,255,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(0,222,255,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F3AF; Remote Learning Mode</a>
+    <div style="margin:12px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <a href="/learn" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#0f3460,#16213e);color:#00deff;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(0,222,255,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(0,222,255,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F3AF; Learning Mode</a>
+      <a href="/remote" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#4a1a6b,#2d1048);color:#c084fc;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(168,85,247,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(168,85,247,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F399;&#xFE0F; Remote Control</a>
     </div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
@@ -850,6 +855,10 @@ void handleLearnPage() {
   server.send_P(200, "text/html", LEARN_PAGE);
 }
 
+void handleRemotePage() {
+  server.send_P(200, "text/html", REMOTE_PAGE);
+}
+
 void handleGetButtons() {
   String json;
   loadSavedButtons(json);
@@ -933,6 +942,47 @@ void handleClearAll() {
   Serial.println("[CLEAR] All saved buttons cleared");
 }
 
+void handleSendIR() {
+  if (!server.hasArg("plain")) {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"No data\"}");
+    return;
+  }
+
+  StaticJsonDocument<512> doc;
+  if (deserializeJson(doc, server.arg("plain"))) {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+    return;
+  }
+
+  String protocol = doc["protocol"] | "";
+  String codeStr  = doc["code"] | "";
+  uint16_t bits   = doc["bits"] | 0;
+
+  if (protocol.length() == 0 || codeStr.length() == 0 || bits == 0) {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"Missing fields\"}");
+    return;
+  }
+
+  // Parse hex code
+  uint64_t code = strtoull(codeStr.c_str(), NULL, 16);
+
+  // Convert protocol string to decode_type_t
+  decode_type_t protoType = strToDecodeType(protocol.c_str());
+
+  bool sent = false;
+  if (protoType != decode_type_t::UNKNOWN) {
+    sent = irsend.send(protoType, code, bits);
+  }
+
+  if (sent) {
+    Serial.printf("[SEND] %s 0x%s (%d bits) -> OK\n", protocol.c_str(), codeStr.c_str(), bits);
+    server.send(200, "application/json", "{\"success\":true}");
+  } else {
+    Serial.printf("[SEND] %s 0x%s (%d bits) -> FAILED\n", protocol.c_str(), codeStr.c_str(), bits);
+    server.send(200, "application/json", "{\"success\":false,\"error\":\"Unsupported protocol\"}");
+  }
+}
+
 // ==================== SETUP ====================
 
 void setup() {
@@ -977,13 +1027,19 @@ void setup() {
     Serial.println(">>> Then open http://" + WiFi.softAPIP().toString() + " <<<\n");
   }
 
+  // Initialize IR sender
+  irsend.begin();
+  Serial.println("[IR] Sender initialized on GPIO5 (D1)");
+
   // Setup HTTP server
   server.on("/", handleRoot);
   server.on("/learn", handleLearnPage);
+  server.on("/remote", handleRemotePage);
   server.on("/api/buttons", HTTP_GET, handleGetButtons);
   server.on("/api/save", HTTP_POST, handleSaveButton);
   server.on("/api/delete", HTTP_POST, handleDeleteButton);
   server.on("/api/clear", HTTP_POST, handleClearAll);
+  server.on("/api/send", HTTP_POST, handleSendIR);
   server.begin();
   Serial.println("[HTTP] Web server started on port 80");
 
