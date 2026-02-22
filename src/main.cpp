@@ -18,6 +18,7 @@
 #include <IRutils.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include "learn_page.h"
 
 // ==================== CONFIGURATION ====================
 const char* WIFI_SSID     = "Keralavision@1994";
@@ -496,6 +497,9 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
   <header>
     <h1>&#x1F4E1; IR Remote Decoder</h1>
     <p>Point your remote at the sensor and press any button</p>
+    <div style="margin:12px 0">
+      <a href="/learn" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#0f3460,#16213e);color:#00deff;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(0,222,255,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(0,222,255,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F3AF; Remote Learning Mode</a>
+    </div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span id="statusText">Connecting...</span>
@@ -844,6 +848,10 @@ void handleRoot() {
   server.send_P(200, "text/html", MAIN_PAGE);
 }
 
+void handleLearnPage() {
+  server.send_P(200, "text/html", LEARN_PAGE);
+}
+
 void handleGetButtons() {
   String json;
   loadSavedButtons(json);
@@ -973,6 +981,7 @@ void setup() {
 
   // Setup HTTP server
   server.on("/", handleRoot);
+  server.on("/learn", handleLearnPage);
   server.on("/api/buttons", HTTP_GET, handleGetButtons);
   server.on("/api/save", HTTP_POST, handleSaveButton);
   server.on("/api/delete", HTTP_POST, handleDeleteButton);
