@@ -18,6 +18,7 @@
   <a href="#-web-interface">Web Interface</a> •
   <a href="#-learning-mode">Learning Mode</a> •
   <a href="#-remote-control">Remote Control</a> •
+  <a href="#-macro-sequences">Macro Sequences</a> •
   <a href="#-api-reference">API</a> •
   <a href="#-project-structure">Structure</a> •
   <a href="#-roadmap--future-upgrades">Roadmap</a>
@@ -53,6 +54,17 @@
 - **Send log** — Timestamped log of all successful and failed transmissions
 - **Stats dashboard** — Total buttons, signals sent, and last sent button name
 - **Smart icons** — Auto-detects button names (Power, Volume, Channel, Play, etc.) and shows matching icons
+
+### 🎬 Macro Sequences
+- **Build sequences** — Select saved buttons and arrange them into automated IR command sequences
+- **Drag & drop reorder** — Drag steps to rearrange the execution order
+- **Per-step delay** — Set individual timing delays (50–30,000 ms) between each IR command
+- **Global delay** — Set a default delay applied to all steps at once
+- **Play / Stop** — Execute the sequence with real-time progress bar and step highlighting
+- **Loop mode** — Repeat the sequence continuously until stopped
+- **Run log** — Timestamped log showing success/fail status for each step
+- **Save & load macros** — Save named macros to browser storage, load them anytime
+- **Smart icons** — Auto-detected icons for each button in the sequence
 
 ### 🌐 Connectivity
 - **Station mode** — Connects to your home WiFi
@@ -168,7 +180,7 @@ The main page provides a live IR signal decoder with a dark, modern UI:
 | **Save Button** | Name and save any decoded signal for future reference |
 | **Saved Buttons** | View all saved buttons with protocol details; delete individually or clear all |
 | **Signal Log** | Chronological log of all received IR signals with timestamps |
-| **Navigation** | Quick links to Learning Mode and Remote Control |
+| **Navigation** | Quick links to Learning Mode, Remote Control, and Macro Sequences |
 
 ### Key Interactions
 - **WebSocket connection** — Status dot turns green when connected; auto-reconnects on disconnect
@@ -240,6 +252,36 @@ Access via the **"🎙️ Remote Control"** button on the main dashboard, or nav
 
 ---
 
+## 🎬 Macro Sequences
+
+Access via the **"🎬 Macro Sequences"** button on the main dashboard, or navigate to `/macro`.
+
+### Building a Sequence
+- Saved buttons are listed on the left panel — click **+** to add a button to the sequence
+- Each step shows the button name, protocol, code, and an individual delay setting
+- Drag and drop steps to reorder, or use the ▲/▼ arrows
+- Remove individual steps with the ✕ button
+- Use **Global Delay** to set the same delay for all steps at once
+
+### Playback
+- **Play** — Executes each step sequentially, sending the IR signal and waiting for the configured delay
+- **Stop** — Immediately halts execution after the current step
+- **Loop** — Continuously repeats the sequence until manually stopped
+- **Progress bar** — Visual progress indication during execution
+- **Step highlighting** — The currently executing step glows green
+- **Run log** — Each step logs its result (Sent ✅ / Failed ❌)
+
+### Saving Macros
+- Name your sequence and click **Save Current** to store it in browser localStorage
+- Load any saved macro to restore its steps into the builder
+- Delete macros you no longer need
+- Example use cases:
+  - "Morning TV" → Power On → Input HDMI → Volume 20
+  - "Lights Scene" → Light 1 On → Light 2 On → Dim to 50%
+  - "Goodnight" → TV Off → AC Timer 2h → Lights Off
+
+---
+
 ## 📡 API Reference
 
 All API endpoints are served by the ESP8266 web server on port 80.
@@ -249,6 +291,7 @@ All API endpoints are served by the ESP8266 web server on port 80.
 | `GET` | `/` | Main decoder dashboard |
 | `GET` | `/learn` | Remote Learning Mode page |
 | `GET` | `/remote` | IR Remote Control (transmitter) page |
+| `GET` | `/macro` | Macro Sequences page |
 | `GET` | `/api/buttons` | Get all saved buttons (JSON array) |
 | `POST` | `/api/save` | Save a new button |
 | `POST` | `/api/delete` | Delete a button by index |
@@ -305,6 +348,7 @@ IR-Remote-Decode/
 ├── include/
 │   ├── learn_page.h                        # Learning Mode HTML/CSS/JS (PROGMEM)
 │   ├── remote_page.h                       # Remote Control HTML/CSS/JS (PROGMEM)
+│   ├── macro_page.h                        # Macro Sequences HTML/CSS/JS (PROGMEM)
 │   ├── wifi_credentials.h                  # Your WiFi credentials (gitignored)
 │   └── wifi_credentials.h.template         # Template for WiFi credentials
 ├── src/
@@ -331,7 +375,7 @@ IR-Remote-Decode/
 | Branch | Description |
 |--------|-------------|
 | `master` | Base IR decoder with live dashboard |
-| `feature/remote-learning` | Full suite: learning mode, remote control transmitter, edge detection, repeat send |
+| `feature/remote-learning` | Full suite: learning mode, remote control transmitter, macro sequences, edge detection, repeat send |
 
 ---
 
@@ -368,7 +412,7 @@ Planned features and improvements for upcoming releases:
 - [ ] **OTA Updates** — Upload new firmware over WiFi without USB
 - [ ] **WiFi Manager Portal** — Configure WiFi credentials via captive portal (no hardcoding)
 - [ ] **AC Remote Profiles** — Pre-built templates for popular AC brands (Daikin, LG, Samsung, etc.)
-- [ ] **Macro Sequences** — Chain multiple IR commands with custom delays (e.g., Power On → Input HDMI → Volume 20)
+- [ ] **Macro Sequences** — ~~Chain multiple IR commands with custom delays~~ ✅ **Implemented!**
 
 ### 🔮 Future Plans
 - [ ] **MQTT Integration** — Publish/subscribe IR commands for Home Assistant, Node-RED, and other smart home platforms

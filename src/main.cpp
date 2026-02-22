@@ -21,6 +21,7 @@
 #include <LittleFS.h>
 #include "learn_page.h"
 #include "remote_page.h"
+#include "macro_page.h"
 #include "wifi_credentials.h"
 
 // ==================== CONFIGURATION ====================
@@ -502,6 +503,7 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     <div style="margin:12px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <a href="/learn" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#0f3460,#16213e);color:#00deff;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(0,222,255,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(0,222,255,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F3AF; Learning Mode</a>
       <a href="/remote" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#4a1a6b,#2d1048);color:#c084fc;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(168,85,247,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(168,85,247,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F399;&#xFE0F; Remote Control</a>
+      <a href="/macro" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#78350f,#451a03);color:#fbbf24;text-decoration:none;font-weight:600;font-size:0.9em;border:1px solid rgba(245,158,11,0.2);transition:all 0.3s;" onmouseover="this.style.boxShadow='0 5px 20px rgba(245,158,11,0.2)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">&#x1F3AC; Macro Sequences</a>
     </div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
@@ -859,6 +861,10 @@ void handleRemotePage() {
   server.send_P(200, "text/html", REMOTE_PAGE);
 }
 
+void handleMacroPage() {
+  server.send_P(200, "text/html", MACRO_PAGE);
+}
+
 void handleGetButtons() {
   String json;
   loadSavedButtons(json);
@@ -1035,6 +1041,7 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/learn", handleLearnPage);
   server.on("/remote", handleRemotePage);
+  server.on("/macro", handleMacroPage);
   server.on("/api/buttons", HTTP_GET, handleGetButtons);
   server.on("/api/save", HTTP_POST, handleSaveButton);
   server.on("/api/delete", HTTP_POST, handleDeleteButton);
