@@ -5,10 +5,10 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
 </p>
 
-<h1 align="center">📡 IR Remote Decoder & Learning System</h1>
+<h1 align="center">📡 IR Remote Decoder, Learner & Transmitter</h1>
 
 <p align="center">
-  <strong>A full-featured IR remote decoder with a beautiful web dashboard, remote photo mapping, edge-detection blueprint rendering, 3× verified signal learning, and CSV/JSON export — all running on an ESP8266.</strong>
+  <strong>A complete IR remote solution — decode, learn, and retransmit infrared signals with a beautiful web dashboard, photo-based button mapping, edge-detection blueprints, 3× verified learning, repeat transmit, and CSV/JSON export — all running on an ESP8266.</strong>
 </p>
 
 <p align="center">
@@ -17,8 +17,10 @@
   <a href="#-getting-started">Getting Started</a> •
   <a href="#-web-interface">Web Interface</a> •
   <a href="#-learning-mode">Learning Mode</a> •
+  <a href="#-remote-control">Remote Control</a> •
   <a href="#-api-reference">API</a> •
-  <a href="#-project-structure">Structure</a>
+  <a href="#-project-structure">Structure</a> •
+  <a href="#-roadmap--future-upgrades">Roadmap</a>
 </p>
 
 ---
@@ -33,7 +35,7 @@
 - Persistent storage using LittleFS on the ESP8266
 - Delete individual buttons or clear all
 
-### 🎯 Remote Learning Mode *(New!)*
+### 🎯 Remote Learning Mode
 - **Upload a photo** of your physical remote (drag & drop or browse)
 - **Edge-detection blueprint** — Sobel edge detection transforms your photo into a futuristic cyan-on-dark schematic
 - **Interactive button mapping** — Click directly on the remote image to mark each button's position
@@ -41,6 +43,16 @@
 - **Skip & retry** — Skip buttons you don't need, retry mismatched readings
 - **Progress tracking** — Animated progress bar, per-button status, and visual markers on the remote image
 - **Export results** — Download verified signals as **CSV** or **JSON** spreadsheets
+
+### 🎮 IR Remote Control (Transmitter)
+- **Grid & List views** — Toggle between a visual button grid with auto-detected icons and a detailed list view
+- **Tap to transmit** — Click any saved button to transmit its IR signal via the IR LED on D1 (GPIO5)
+- **Animated send feedback** — Full-screen overlay with IR beam animation, protocol display, and success checkmark
+- **Repeat send** — Select a button, set repeat count (1–100) and delay (50–10,000 ms), fire with progress tracking and stop control
+- **Quick recents** — Recently sent buttons appear as chips for rapid re-sending
+- **Send log** — Timestamped log of all successful and failed transmissions
+- **Stats dashboard** — Total buttons, signals sent, and last sent button name
+- **Smart icons** — Auto-detects button names (Power, Volume, Channel, Play, etc.) and shows matching icons
 
 ### 🌐 Connectivity
 - **Station mode** — Connects to your home WiFi
@@ -57,24 +69,27 @@
 |-----------|-------------|-----|
 | **ESP8266** | NodeMCU v2 (ESP-12E) | — |
 | **TSOP IR Receiver** | TSOP1738 / VS1838B | GPIO2 (D4) |
+| **IR LED** | 940nm IR transmitter LED (with transistor driver recommended) | GPIO5 (D1) |
 | **USB Cable** | Micro USB for power & programming | — |
 
 ### Wiring Diagram
 
 ```
-TSOP IR Sensor          ESP8266 (NodeMCU)
-┌──────────┐            ┌──────────────┐
-│          │            │              │
-│  VCC  ───┼────────────┤  3.3V        │
-│          │            │              │
-│  GND  ───┼────────────┤  GND         │
-│          │            │              │
-│  OUT  ───┼────────────┤  D4 (GPIO2)  │
-│          │            │              │
-└──────────┘            └──────────────┘
+TSOP IR Sensor          ESP8266 (NodeMCU)         IR LED Circuit
+┌──────────┐            ┌──────────────┐          ┌──────────┐
+│          │            │              │          │          │
+│  VCC  ───┼────────────┤  3.3V        │          │  3.3V ───┤── Resistor ── LED Anode
+│          │            │              │          │          │
+│  GND  ───┼────────────┤  GND         ├──────────┤── GND    │── LED Cathode
+│          │            │              │          │          │
+│  OUT  ───┼────────────┤  D4 (GPIO2)  │          │          │
+│          │            │              │          │          │
+└──────────┘            │  D1 (GPIO5)  ├──────────┤── Signal │
+                        │              │          │          │
+                        └──────────────┘          └──────────┘
 ```
 
-> **Note:** The TSOP sensor's pinout varies by model. Verify your sensor's datasheet before wiring.
+> **Note:** For best transmit range, use a transistor (e.g., 2N2222) to drive the IR LED from the 5V/3.3V rail, with GPIO5 controlling the base. A direct connection works for short range.
 
 ---
 
@@ -94,12 +109,20 @@ cd IR-Remote-Decode
 
 ### 2. Configure WiFi Credentials
 
-Edit `src/main.cpp` and update these lines with your network details:
+Copy the template and fill in your details:
+
+```bash
+cp include/wifi_credentials.h.template include/wifi_credentials.h
+```
+
+Edit `include/wifi_credentials.h`:
 
 ```cpp
 const char* WIFI_SSID     = "YourWiFiName";
 const char* WIFI_PASSWORD = "YourWiFiPassword";
 ```
+
+> **Note:** `wifi_credentials.h` is gitignored — your credentials will never be committed.
 
 ### 3. Build & Upload
 
@@ -145,7 +168,7 @@ The main page provides a live IR signal decoder with a dark, modern UI:
 | **Save Button** | Name and save any decoded signal for future reference |
 | **Saved Buttons** | View all saved buttons with protocol details; delete individually or clear all |
 | **Signal Log** | Chronological log of all received IR signals with timestamps |
-| **Learning Mode Link** | Quick navigation to the Remote Learning Mode |
+| **Navigation** | Quick links to Learning Mode and Remote Control |
 
 ### Key Interactions
 - **WebSocket connection** — Status dot turns green when connected; auto-reconnects on disconnect
@@ -194,6 +217,29 @@ Access via the **"🎯 Remote Learning Mode"** button on the main dashboard, or 
 
 ---
 
+## 🎮 Remote Control
+
+Access via the **"🎙️ Remote Control"** button on the main dashboard, or navigate to `/remote`.
+
+### Transmit Interface
+- **Grid view** — Visual button grid with auto-detected icons (power ⏻, volume 🔊, channel 📺, play ▶️, etc.)
+- **List view** — Detailed list with protocol info and individual send buttons
+- **Tap to send** — Click/tap any button to instantly transmit the IR signal
+- **Send animation** — Full-screen overlay with IR beam animation, protocol/code display, and success ✅
+
+### Repeat Send
+- Select any button for repeat transmission
+- Configure **repeat count** (1–100) and **delay** between sends (50–10,000 ms)
+- Live progress bar with stop control
+- Perfect for testing, stress-testing devices, or automated control sequences
+
+### Quick Access
+- **Recent chips** — Last 8 sent buttons appear at the top for rapid re-sending
+- **Stats bar** — Live counters for total buttons, signals sent, and last sent name
+- **Send log** — Timestamped history of all transmissions (success/fail)
+
+---
+
 ## 📡 API Reference
 
 All API endpoints are served by the ESP8266 web server on port 80.
@@ -202,10 +248,12 @@ All API endpoints are served by the ESP8266 web server on port 80.
 |--------|----------|-------------|
 | `GET` | `/` | Main decoder dashboard |
 | `GET` | `/learn` | Remote Learning Mode page |
+| `GET` | `/remote` | IR Remote Control (transmitter) page |
 | `GET` | `/api/buttons` | Get all saved buttons (JSON array) |
 | `POST` | `/api/save` | Save a new button |
 | `POST` | `/api/delete` | Delete a button by index |
 | `POST` | `/api/clear` | Delete all saved buttons |
+| `POST` | `/api/send` | Transmit an IR signal |
 
 ### WebSocket (Port 81)
 
@@ -231,19 +279,37 @@ Real-time IR signals are broadcast via WebSocket:
 }
 ```
 
+### Send IR Signal Payload
+
+```json
+{
+  "protocol": "NEC",
+  "code": "FF30CF",
+  "bits": 32
+}
+```
+
+Response:
+```json
+{ "success": true }
+```
+
 ---
 
 ## 📁 Project Structure
 
 ```
 IR-Remote-Decode/
-├── platformio.ini          # PlatformIO configuration & dependencies
-├── README.md               # This file
+├── platformio.ini                          # PlatformIO configuration & dependencies
+├── README.md                               # This file
 ├── include/
-│   └── learn_page.h        # Learning Mode HTML/CSS/JS (PROGMEM)
+│   ├── learn_page.h                        # Learning Mode HTML/CSS/JS (PROGMEM)
+│   ├── remote_page.h                       # Remote Control HTML/CSS/JS (PROGMEM)
+│   ├── wifi_credentials.h                  # Your WiFi credentials (gitignored)
+│   └── wifi_credentials.h.template         # Template for WiFi credentials
 ├── src/
-│   └── main.cpp            # Main firmware: WiFi, IR, web server, decoder UI
-├── lib/                    # Custom libraries (empty)
+│   └── main.cpp                            # Main firmware: WiFi, IR recv/send, web server, decoder UI
+├── lib/                                    # Custom libraries (empty)
 └── .gitignore
 ```
 
@@ -265,7 +331,7 @@ IR-Remote-Decode/
 | Branch | Description |
 |--------|-------------|
 | `master` | Base IR decoder with live dashboard |
-| `feature/remote-learning` | Adds photo upload, edge detection, button mapping, 3× learning & export |
+| `feature/remote-learning` | Full suite: learning mode, remote control transmitter, edge detection, repeat send |
 
 ---
 
@@ -291,6 +357,37 @@ NEC • Sony • Samsung • LG • Panasonic • RC5 • RC6 • JVC • Sharp 
 ## 📜 License
 
 This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+## 🗺 Roadmap & Future Upgrades
+
+Planned features and improvements for upcoming releases:
+
+### 🔜 Next Release
+- [ ] **OTA Updates** — Upload new firmware over WiFi without USB
+- [ ] **WiFi Manager Portal** — Configure WiFi credentials via captive portal (no hardcoding)
+- [ ] **AC Remote Profiles** — Pre-built templates for popular AC brands (Daikin, LG, Samsung, etc.)
+- [ ] **Macro Sequences** — Chain multiple IR commands with custom delays (e.g., Power On → Input HDMI → Volume 20)
+
+### 🔮 Future Plans
+- [ ] **MQTT Integration** — Publish/subscribe IR commands for Home Assistant, Node-RED, and other smart home platforms
+- [ ] **Alexa / Google Home** — Voice control for IR devices via cloud bridge
+- [ ] **Raw Signal Support** — Capture and replay raw IR signals for unsupported protocols
+- [ ] **ESP32 Migration** — Dual-core support, BLE, more RAM for richer UI
+- [ ] **Multi-Remote Profiles** — Save and switch between multiple remote configurations
+- [ ] **Scheduled Actions** — Time-based IR triggers (e.g., turn off TV at midnight)
+- [ ] **Signal Analyzer** — Visual waveform display of raw IR signal timing
+- [ ] **Mobile App** — React Native companion app with Bluetooth fallback
+- [ ] **REST API Auth** — Token-based authentication for API endpoints
+- [ ] **Database Export** — Save button mappings to Firebase / Supabase for cloud backup
+- [ ] **IR Blaster Mode** — External high-power IR LED array for whole-room coverage
+- [ ] **Button Icon Customization** — Upload custom icons for each button on the remote control page
+- [ ] **Dark/Light Theme Toggle** — User-selectable UI theme
+- [ ] **Signal Comparison** — Compare two IR codes side-by-side for debugging
+
+### 💡 Community Ideas
+Have a feature idea? Open an [issue](https://github.com/Am4l-babu/IR-Remote-Decode/issues) or submit a pull request!
 
 ---
 
