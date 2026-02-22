@@ -19,11 +19,9 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include "learn_page.h"
+#include "wifi_credentials.h"
 
 // ==================== CONFIGURATION ====================
-const char* WIFI_SSID     = "Keralavision@1994";
-const char* WIFI_PASSWORD = "babu7362";
-
 const uint16_t IR_RECV_PIN = 2;  // GPIO2 = D4 on ESP8266
 const uint16_t CAPTURE_BUFFER_SIZE = 1024;
 const uint8_t  TIMEOUT = 50;
