@@ -29,20 +29,27 @@ Wiring: `TSOP1738 OUT → D4 (GPIO2)`, `GND → GND`, `VCC → 3V3`. See the wir
 
 This project uses [PlatformIO](https://platformio.org/).
 
-```bash
-pio run -t upload      # build + flash
-pio run -t uploadfs    # upload LittleFS filesystem (for saved buttons)
-pio device monitor      # serial monitor at 115200 baud
-```
+1. Copy `include/secrets.h.example` to `include/secrets.h` and fill in your Wi-Fi SSID/password. `secrets.h` is gitignored, so your credentials never get committed.
+
+   ```bash
+   cp include/secrets.h.example include/secrets.h
+   ```
+
+2. Build and flash:
+
+   ```bash
+   pio run -t upload      # build + flash
+   pio run -t uploadfs    # upload LittleFS filesystem (for saved buttons)
+   pio device monitor      # serial monitor at 115200 baud
+   ```
 
 On boot the device connects to Wi-Fi (or falls back to AP mode `IR_Decoder` / `12345678`) and prints its IP address to serial. Open that address in a browser to reach the dashboard, or `/learn` for Remote Learning Mode.
-
-> **Note:** `src/main.cpp` currently has Wi-Fi credentials hardcoded at the top of the file. Move these to a `secrets.h` (gitignored) or build flags before pushing your own changes to a public fork.
 
 ## Project structure
 
 ```
-src/main.cpp          # firmware: IR decode loop, web server, WebSocket, live dashboard HTML
-include/learn_page.h  # Remote Learning Mode page (upload, map, learn, export)
-docs/simulator.html   # standalone browser simulator — no hardware required
+src/main.cpp                 # firmware: IR decode loop, web server, WebSocket, live dashboard HTML
+include/learn_page.h         # Remote Learning Mode page (upload, map, learn, export)
+include/secrets.h.example    # Wi-Fi credentials template — copy to secrets.h and fill in your own
+docs/simulator.html          # standalone browser simulator — no hardware required
 ```
